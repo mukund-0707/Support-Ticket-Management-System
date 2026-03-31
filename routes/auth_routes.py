@@ -1,0 +1,38 @@
+
+from fastapi import APIRouter, Depends,HTTPException,status
+from fastapi.security import OAuth2PasswordRequestForm
+from models.users import User
+from utils.security import get_password_hash,verify_password,create_access_token
+from app.database import db_dependecies, db_conn
+from sqlalchemy.orm import Session
+from schemas.user_schema import UserCreate,UserResponse
+
+
+router = APIRouter()
+
+@router.post("/register",response_model=UserResponse)
+def register(user:UserCreate,db:db_dependecies):
+   new_user = User(
+    name = user.name,
+    email = user.email,
+    password = get_password_hash(user.password[:72]),
+    role = user.role.value
+   )
+   db.add(new_user)
+   db.commit()
+   db.refresh(new_user)
+   return new_user
+
+@router.post("/login")
+def login(form_data:OAuth2PasswordRequestForm = Depends(),db:Session = Depends(db_conn)):
+    email_user = db.query(User).filter(User.email == form_data.username).first()
+    if not email_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid credentials")
+    if not verify_password(form_data.password,email_user.password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid credentials")
+    access_token = create_access_token(data={
+    "sub": email_user.email,
+    "role": email_user.role
+    })
+    return {"access_token":access_token,"token_type":"bearer"}
+
