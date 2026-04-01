@@ -40,8 +40,12 @@ async def create_ticket(ticket:TicketCreate,db:db_dependecies,background_tasks: 
         )
     return new_ticket
 
-@router.get("/tickets/{id}",response_model=TicketResponse)
+@router.get("/tickets/by-id/{id}",response_model=TicketResponse)
 async def get_ticket_by_id(id:int,db:db_dependecies,current_user:User = Depends(get_current_user)):
+    if current_user.role == "customer":
+        ticket = db.query(Ticket).filter(Ticket.id == id, Ticket.created_by == current_user.id).first()
+        if not ticket:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can't view others tickets")
     cache_key = f"tickets:{id}"
     cached_ticket = await get_cache(cache_key)
     if cached_ticket:
@@ -52,7 +56,7 @@ async def get_ticket_by_id(id:int,db:db_dependecies,current_user:User = Depends(
     await set_cache(cache_key, ticket,expire=120)
     return ticket
 
-@router.get("/tickets/priority",response_model=list[TicketResponse])
+@router.get("/tickets/by-priority",response_model=list[TicketResponse])
 async def get_tickets_by_priority(priority:TicketPriority,db:db_dependecies,current_user:User = Depends(get_current_user)):
     if not (current_user.role == "agent" or current_user.role == "admin"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Only agents and admins can view tickets")
@@ -60,7 +64,7 @@ async def get_tickets_by_priority(priority:TicketPriority,db:db_dependecies,curr
     cached_tickets = await get_cache(cache_key)
     if cached_tickets:
         return cached_tickets
-    tickets = db.query(Ticket).filter(Ticket.priority == priority.value).all()
+    tickets = db.query(Ticket).filter(Ticket.priority == priority.value,Ticket.status != "resolved").all()
     if not tickets:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Tickets not found")
     await set_cache(cache_key, tickets,expire=120)
