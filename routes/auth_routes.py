@@ -8,10 +8,12 @@ from sqlalchemy.orm import Session
 from schemas.user_schema import UserCreate,UserResponse
 
 
-router = APIRouter()
+router = APIRouter(tags=["Auth"])
 
 @router.post("/register",response_model=UserResponse)
 def register(user:UserCreate,db:db_dependecies):
+   if db.query(User).filter(User.email == user.email).first():
+       raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="User already exists")
    new_user = User(
     name = user.name,
     email = user.email,
@@ -31,8 +33,7 @@ def login(form_data:OAuth2PasswordRequestForm = Depends(),db:Session = Depends(d
     if not verify_password(form_data.password,email_user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid credentials")
     access_token = create_access_token(data={
-    "sub": email_user.email,
-    "role": email_user.role
+    "sub": email_user.email
     })
     return {"access_token":access_token,"token_type":"bearer"}
 

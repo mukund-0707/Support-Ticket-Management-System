@@ -17,3 +17,4 @@ class CommentResponse(BaseModel):
     user_id:int
     message:str
     created_at:datetime
+    updated_at:datetime

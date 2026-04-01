@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from enum import Enum
+from typing import Optional
 
 class TicketStatus(str,Enum):
     OPEN = "open"
@@ -25,3 +26,8 @@ class TicketResponse(BaseModel):
     status:TicketStatus
     created_at:datetime
     updated_at:datetime
+
+
+class TicketUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None

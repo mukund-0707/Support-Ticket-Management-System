@@ -10,3 +10,4 @@ class Comment(Base):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
     message: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)

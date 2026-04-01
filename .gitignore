@@ -1,17 +1,27 @@
+# Virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment variables
 .env
-__pycache__
-.venv
-.env.example
-.env.prod
-.env.dev
-.env.test
-.env.local
-.env.prod.example
-.env.dev.example
-.env.test.example
-.env.local.example
-.env.prod.local
-.env.dev.local
-.env.test.local
-.env.local.local
-venv
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Distribution
+*.egg-info/
+dist/
+build/
