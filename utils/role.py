@@ -1,12 +1,15 @@
-from fastapi import HTTPException,status,Depends
+from fastapi import HTTPException, status, Depends
 from app.database import db_dependecies
 from models.users import User
 from utils.security import oauth2_scheme
-from jose import jwt,JWTError
+from jose import jwt, JWTError
 
-def get_current_user(db: db_dependecies,token: str = Depends(oauth2_scheme),):
+
+def get_current_user(db: db_dependecies, token: str = Depends(oauth2_scheme)):
+    print("token", token)
     try:
         payload = jwt.decode(token, "SECRET_KEY", algorithms=["HS256"])
+        print("payload: ", payload)
         email = payload.get("sub")
 
         user = db.query(User).filter(User.email == email).first()
@@ -17,4 +20,3 @@ def get_current_user(db: db_dependecies,token: str = Depends(oauth2_scheme),):
 
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
-
