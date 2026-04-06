@@ -53,7 +53,9 @@ def test_invalid_customer_register_with_invalid_email_and_password(client):
         },
     )
     assert response.status_code == 422
-    assert response.json()["detail"][0]["msg"].startswith("value is not a valid email address")
+    assert response.json()["detail"][0]["msg"].startswith(
+        "value is not a valid email address"
+    )
     print(response.json())
 
 
@@ -102,8 +104,11 @@ def test_invalid_agent_register_with_invalid_email_and_password(client):
         },
     )
     assert response.status_code == 422
-    assert response.json()["detail"][0]["msg"].startswith("value is not a valid email address")
+    assert response.json()["detail"][0]["msg"].startswith(
+        "value is not a valid email address"
+    )
     print(response.json())
+
 
 # valid admin register test
 def test_admin_register(client):
@@ -149,7 +154,9 @@ def test_invalid_admin_register_with_invalid_email_and_password(client):
         },
     )
     assert response.status_code == 422
-    assert response.json()["detail"][0]["msg"].startswith("value is not a valid email address")
+    assert response.json()["detail"][0]["msg"].startswith(
+        "value is not a valid email address"
+    )
     print(response.json())
 
 

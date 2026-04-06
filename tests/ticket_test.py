@@ -38,7 +38,11 @@ def test_customer_ticket_category_not_found(client):
     token = login_response.json()["access_token"]
     response = client.post(
         "/tickets",
-        json={"title": "NonExistent Category", "description": "Test", "priority": "high"},
+        json={
+            "title": "NonExistent Category",
+            "description": "Test",
+            "priority": "high",
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 404
@@ -59,7 +63,6 @@ def test_customer_ticket_not_authorized(client):
     response = client.post(
         "/tickets",
         json={"title": "Test Category", "description": "Test", "priority": "high"},
-        
     )
     assert response.status_code == 401
     assert response.json()["detail"] == "Not authenticated"
@@ -121,7 +124,11 @@ def test_agent_ticket_category_not_found(client):
     token = login_response.json()["access_token"]
     response = client.post(
         "/tickets",
-        json={"title": "NonExistent Category", "description": "Test", "priority": "high"},
+        json={
+            "title": "NonExistent Category",
+            "description": "Test",
+            "priority": "high",
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 404
@@ -202,7 +209,11 @@ def test_admin_ticket_category_not_found(client):
     token = login_response.json()["access_token"]
     response = client.post(
         "/tickets",
-        json={"title": "NonExistent Category", "description": "Test", "priority": "high"},
+        json={
+            "title": "NonExistent Category",
+            "description": "Test",
+            "priority": "high",
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 404
@@ -358,7 +369,7 @@ def test_agent_get_ticket_by_id(client):
         "/login", data={"username": admin_email, "password": "Mukund@07"}
     )
     admin_token = admin_login_response.json()["access_token"]
-   
+
     login_response = client.post(
         "/login", data={"username": agent_email, "password": "Mayur@07"}
     )
@@ -483,7 +494,6 @@ def test_admin_get_ticket_by_id_not_authorized(client):
     ticket_id = ticket_response.json()["id"]
     response = client.get(
         f"/tickets/by-id/{ticket_id}",
-        
     )
     assert response.status_code == 401
     assert response.json()["detail"] == "Not authenticated"
@@ -542,7 +552,7 @@ def test_agent_get_ticket_by_priority(client):
     response = client.get(
         "/tickets/by-priority?priority=high",
         headers={"Authorization": f"Bearer {token}"},
-    )   
+    )
     print("response", response)
     assert response.status_code == 200
     assert response.json()[0]["priority"] == "high"
@@ -571,7 +581,6 @@ def test_admin_get_ticket_by_priority(client):
     )
     assert response.status_code == 200
     assert response.json()[0]["priority"] == "high"
-
 
 
 # /tickets/filter
@@ -633,7 +642,6 @@ def test_agent_get_ticket_by_filter(client):
     assert response.json()[0]["status"] == "open"
 
 
-
 # admin get ticket by filter
 def test_admin_get_ticket_by_filter(client):
     login_response = client.post(
@@ -658,7 +666,6 @@ def test_admin_get_ticket_by_filter(client):
     print("RESPONSE:", response.json())
     assert response.status_code == 200
     assert response.json()[0]["status"] == "open"
-
 
 
 # /tickets #get all tickets
@@ -736,7 +743,6 @@ def test_admin_get_all_tickets(client):
     assert response.status_code == 200
 
 
-
 # /tickets/my-tickets
 def test_get_all_ticket_by_customer(client):
     login_response = client.post(
@@ -758,7 +764,6 @@ def test_get_all_ticket_by_customer(client):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
-
 
 
 # /tickets/{id}/status
@@ -788,9 +793,7 @@ def test_customer_update_ticket_status_error(client):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 403
-    assert (
-        response.json()["detail"] == "Only agents and admins can update tickets"
-    )
+    assert response.json()["detail"] == "Only agents and admins can update tickets"
 
 
 # agent update ticket status and get success
@@ -821,7 +824,8 @@ def test_agent_update_ticket_status(client):
     assert response.status_code == 200
     assert response.json()["status"] == "resolved"
 
-#agent cancel ticket and get success
+
+# agent cancel ticket and get success
 def test_agent_cancel_ticket(client):
     admin_login_response = client.post(
         "/login", data={"username": admin_email, "password": "Mukund@07"}
@@ -848,6 +852,7 @@ def test_agent_cancel_ticket(client):
     )
     assert response.status_code == 200
     assert response.json()["status"] == "cancelled"
+
 
 # agent update ticket status and get error if ticket not found
 def test_agent_update_ticket_status_not_found(client):
@@ -902,6 +907,7 @@ def test_agent_update_resolved_ticket(client):
     assert response.status_code == 400
     assert response.json()["detail"] == "Cannot update resolved or cancelled ticket"
 
+
 # agent update cancelled ticket and get error
 def test_agent_update_cancelled_ticket(client):
     admin_login_response = client.post(
@@ -935,7 +941,8 @@ def test_agent_update_cancelled_ticket(client):
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "Cannot update resolved or cancelled ticket"
-    
+
+
 # admin update ticket status and get success
 def test_admin_update_ticket_status(client):
     login_response = client.post(
@@ -959,6 +966,7 @@ def test_admin_update_ticket_status(client):
     )
     assert response.status_code == 200
     assert response.json()["status"] == "resolved"
+
 
 # admin update ticket to cancelled and get success  in this test we cover cancel the ticket and trying to cancel again
 def test_admin_update_ticket_to_cancelled(client):
@@ -1062,9 +1070,7 @@ def test_customer_update_ticket_status(client):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 403
-    assert (
-        response.json()["detail"] == "Only agents and admins can update tickets"
-    )
+    assert response.json()["detail"] == "Only agents and admins can update tickets"
 
 
 # customer update ticket status and get error if ticket not found
@@ -1094,7 +1100,9 @@ def test_customer_assign_ticket(client):
         },
     )
     agent_id = agent_register.json()["id"]
-    admin_reponse = client.post(    "/login", data={"username": admin_email, "password": "Mukund@07"}   )
+    admin_reponse = client.post(
+        "/login", data={"username": admin_email, "password": "Mukund@07"}
+    )
     admin_token = admin_reponse.json()["access_token"]
     login_response = client.post(
         "/login", data={"username": customer_email, "password": "Raj@07"}
@@ -1284,6 +1292,7 @@ def test_not_assign_resolved_ticket(client):
     assert response.status_code == 400
     assert response.json()["detail"] == "Cannot assign resolved or cancelled ticket"
 
+
 # cannot assign cancel ticket
 def test_cannot_assign_cancel_ticket(client):
     agent_register = client.post(
@@ -1327,6 +1336,7 @@ def test_cannot_assign_cancel_ticket(client):
     assert response.status_code == 400
     assert response.json()["detail"] == "Cannot assign resolved or cancelled ticket"
 
+
 # cannot assign to customer
 def test_cannot_assign_to_customer(client):
     customer_register = client.post(
@@ -1367,6 +1377,7 @@ def test_cannot_assign_to_customer(client):
 
 
 # patch("/tickets/customer/{ticket_id}"
+
 
 # customer update ticket and get success
 def test_customer_update_ticket(client):
@@ -1414,13 +1425,13 @@ def test_customer_update_ticket_not_found(client):
     assert response.json()["detail"] == "Ticket not found"
 
 
-#cannot update resolved ticket
+# cannot update resolved ticket
 def test_cannot_update_resolved_ticket(client):
     admin_respomse = client.post(
         "/login", data={"username": admin_email, "password": "Mukund@07"}
     )
     admin_token = admin_respomse.json()["access_token"]
-    
+
     agent_login = client.post(
         "/login", data={"username": agent_email, "password": "Mayur@07"}
     )
@@ -1453,4 +1464,3 @@ def test_cannot_update_resolved_ticket(client):
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "Cannot update resolved or cancelled ticket"
-

@@ -1,9 +1,21 @@
+from typing import Optional
+from decorators.ticket_decorators import (
+    require_roles,
+    validate_cancel_reason,
+    validate_ticket_status,
+)
 from schemas.ticket_schema import TicketPriority
 from schemas.ticket_schema import TicketUpdate
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from app.database import db_dependecies
 from models.tickets import Ticket
-from schemas.ticket_schema import TicketCreate, TicketResponse, TicketStatus
+from models.cancelled_tickets import CancelledTicket
+from schemas.ticket_schema import (
+    TicketCreate,
+    TicketResponse,
+    TicketStatus,
+    TicketStatusUpdate,
+)
 from utils.role import get_current_user
 from models.users import User
 from services.cache import delete_pattern, get_cache, set_cache
@@ -89,23 +101,23 @@ async def get_ticket_by_id(
 
 
 @router.get("/tickets/by-priority", response_model=list[TicketResponse])
+@require_roles(["agent", "admin"])
 async def get_tickets_by_priority(
     priority: TicketPriority,
     db: db_dependecies,
     current_user: User = Depends(get_current_user),
 ):
-    if not (current_user.role == "agent" or current_user.role == "admin"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only agents and admins can view tickets",
-        )
     cache_key = f"tickets:priority:{priority.value}"
     cached_tickets = await get_cache(cache_key)
     if cached_tickets:
         return cached_tickets
     tickets = (
         db.query(Ticket)
-        .filter(Ticket.priority == priority.value, Ticket.status != "resolved", Ticket.status != "cancelled")
+        .filter(
+            Ticket.priority == priority.value,
+            Ticket.status != TicketStatus.RESOLVED,
+            Ticket.status != TicketStatus.CANCELLED,
+        )
         .all()
     )
     if not tickets:
@@ -117,16 +129,12 @@ async def get_tickets_by_priority(
 
 
 @router.get("/tickets/filter", response_model=list[TicketResponse])
+@require_roles(["agent", "admin"])
 async def get_tickets_by_status(
     status_code: TicketStatus,
     db: db_dependecies,
     current_user: User = Depends(get_current_user),
 ):
-    if not (current_user.role == "agent" or current_user.role == "admin"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only agents and admins can view tickets",
-        )
     cache_key = f"tickets:status:{status_code.value}"
     cached_tickets = await get_cache(cache_key)
     if cached_tickets:
@@ -141,17 +149,13 @@ async def get_tickets_by_status(
 
 
 @router.get("/tickets", response_model=list[TicketResponse])
+@require_roles(["agent", "admin"])
 async def get_tickets(
     db: db_dependecies,
     current_user: User = Depends(get_current_user),
     page: int = 1,
     page_size: int = 10,
 ):
-    if not (current_user.role == "agent" or current_user.role == "admin"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only agents and admins can view tickets",
-        )
     cache_key = f"tickets:list:{page}:{page_size}"
     cached_tickets = await get_cache(cache_key)
     if cached_tickets:
@@ -173,7 +177,12 @@ async def get_ticket(
     cached_tickets = await get_cache(cache_key)
     if cached_tickets:
         return cached_tickets
-    ticket = db.query(Ticket).filter(Ticket.created_by == current_user.id).all()
+    if current_user.role == "customer":
+        ticket = db.query(Ticket).filter(Ticket.created_by == current_user.id).all()
+    elif current_user.role == "agent":
+        ticket = db.query(Ticket).filter(Ticket.assigned_to == current_user.id).all()
+    elif current_user.role == "admin":
+        ticket = db.query(Ticket).all()
     if not ticket:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found"
@@ -183,26 +192,38 @@ async def get_ticket(
 
 
 @router.patch("/tickets/{id}/status", response_model=TicketResponse)
+@require_roles(["agent", "admin"])
+@validate_ticket_status
+@validate_cancel_reason
 async def update_ticket_status(
     id: int,
-    ticket_status: TicketStatus,
+    ticket_status: TicketStatusUpdate,
     background_tasks: BackgroundTasks,
     db: db_dependecies,
     current_user: User = Depends(get_current_user),
 ):
-    if not (current_user.role == "agent" or current_user.role == "admin"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only agents and admins can update tickets",
-        )
+
     ticket = db.query(Ticket).filter(Ticket.id == id).first()
     if not ticket:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found"
         )
-    if ticket.status == "resolved" or ticket.status == "cancelled":
-        raise HTTPException(status_code=400, detail="Cannot update resolved or cancelled ticket")
-    ticket.status = ticket_status.value
+    if (
+        ticket.assigned_to
+        and current_user.role == "agent"
+        and ticket.assigned_to != current_user.id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Agents can only update tickets assigned to them",
+        )
+
+    ticket.status = ticket_status.status.value
+    if ticket_status.status == TicketStatus.CANCELLED:
+        cancelled_ticket = CancelledTicket(
+            ticket_id=ticket.id, reason=ticket_status.reason
+        )
+        db.add(cancelled_ticket)
     db.commit()
     db.refresh(ticket)
     await delete_pattern("tickets:list:*")
@@ -211,38 +232,46 @@ async def update_ticket_status(
 
     customer = db.query(User).filter(User.id == ticket.created_by).first()
     if customer:
-        if ticket_status == TicketStatus.IN_PROGRESS:
+        if ticket_status.status == TicketStatus.IN_PROGRESS:
             email_subject = "Ticket In Progress"
             email_body = f"Your ticket '{ticket.title}' is now in progress."
-        elif ticket_status == TicketStatus.RESOLVED:
+            print("Ticket In Progress", ticket_status)
+        elif ticket_status.status == TicketStatus.RESOLVED:
             email_subject = "Ticket Resolved"
             email_body = f"Your ticket '{ticket.title}' has been resolved."
+            print("Ticket Resolved", ticket_status)
+        elif ticket_status.status == TicketStatus.CANCELLED:
+            email_subject = "Ticket Cancelled"
+            email_body = f"Your ticket '{ticket.title}' has been cancelled.\nReason: {ticket_status.reason}"
+            print("Ticket Cancelled", ticket_status)
         else:
             email_subject = "Ticket Status Updated"
-            email_body = f"Your ticket '{ticket.title}' status has been updated to {ticket_status.value}."
+            email_body = f"Your ticket '{ticket.title}' status has been updated to {ticket_status.status.value}."
+            print("Ticket Status Updated", ticket_status)
         background_tasks.add_task(send_email, customer.email, email_subject, email_body)
     return ticket
 
 
 @router.patch("/tickets/{id}/assign", response_model=TicketResponse)
+@require_roles(["admin"])
 async def update_ticket_assign(
     id: int,
     assign: int,
     db: db_dependecies,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only admin can assign tickets",
-        )
     ticket = db.query(Ticket).filter(Ticket.id == id).first()
     if not ticket:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found"
         )
-    if ticket.status == "resolved" or ticket.status == "cancelled":
-        raise HTTPException(status_code=400, detail="Cannot assign resolved or cancelled ticket")
+    if (
+        ticket.status == TicketStatus.RESOLVED
+        or ticket.status == TicketStatus.CANCELLED
+    ):
+        raise HTTPException(
+            status_code=400, detail="Cannot assign resolved or cancelled ticket"
+        )
     assign_user = db.query(User).filter(User.id == assign).first()
     if not assign_user:
         raise HTTPException(
@@ -263,17 +292,13 @@ async def update_ticket_assign(
 
 
 @router.patch("/tickets/customer/{ticket_id}", response_model=TicketResponse)
+@require_roles(["customer"])
 async def update_ticket_customer(
     ticket_id: int,
     ticket_data: TicketUpdate,
     db: db_dependecies,
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role != "customer":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only customers can update tickets",
-        )
     ticket = (
         db.query(Ticket)
         .filter(Ticket.id == ticket_id, Ticket.created_by == current_user.id)
@@ -283,8 +308,13 @@ async def update_ticket_customer(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found"
         )
-    if ticket.status == "resolved" or ticket.status == "cancelled":
-        raise HTTPException(status_code=400, detail="Cannot update resolved or cancelled ticket")
+    if (
+        ticket.status == TicketStatus.RESOLVED
+        or ticket.status == TicketStatus.CANCELLED
+    ):
+        raise HTTPException(
+            status_code=400, detail="Cannot update resolved or cancelled ticket"
+        )
     if ticket_data.title:
         ticket.title = ticket_data.title
     if ticket_data.description:

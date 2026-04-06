@@ -21,7 +21,7 @@ def create_comment(
             detail="You are not authorized to comment on tickets",
         )
     ticket = db.query(Ticket).filter(Ticket.id == comment.ticket_id).first()
-    if not ticket:      
+    if not ticket:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found"
         )

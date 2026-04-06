@@ -14,13 +14,13 @@ def test_create_category_cusotmer(client):
             "email": customer_email,
             "password": "John@07",
             "role": "customer",
-        }
+        },
     )
     login_response = client.post(
         "/login", data={"username": customer_email, "password": "John@07"}
     )
     print(register_response.json())
-    print("login response:",login_response.json())
+    print("login response:", login_response.json())
 
     token = login_response.json()["access_token"]
     response = client.post(
@@ -42,7 +42,7 @@ def test_create_category_agent(client):
             "email": agent_email,
             "password": "John@07",
             "role": "agent",
-        }
+        },
     )
     login_response = client.post(
         "/login", data={"username": agent_email, "password": "John@07"}
@@ -67,7 +67,7 @@ def test_create_category_admin(client):
             "email": admin_email,
             "password": "John@07",
             "role": "admin",
-        }
+        },
     )
     login_response = client.post(
         "/login", data={"username": admin_email, "password": "John@07"}

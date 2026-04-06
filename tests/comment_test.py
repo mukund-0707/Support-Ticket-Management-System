@@ -1,8 +1,6 @@
 from fastapi.testclient import TestClient
 from routes.comment_routes import router
 
-
-
 customer_email = "raj0707@gmail.com"
 agent_email = "mayur0707@gmail.com"
 admin_email = "mukundpatil0707@gmail.com"

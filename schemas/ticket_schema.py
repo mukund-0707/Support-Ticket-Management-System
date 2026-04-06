@@ -11,6 +11,11 @@ class TicketStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+class TicketStatusUpdate(BaseModel):
+    status: TicketStatus
+    reason: Optional[str] = None
+
+
 class TicketPriority(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
@@ -30,6 +35,7 @@ class TicketResponse(BaseModel):
     priority: TicketPriority
     status: TicketStatus
     category_id: int
+    assigned_to: Optional[int] = None
     created_by: int
 
     created_at: datetime
