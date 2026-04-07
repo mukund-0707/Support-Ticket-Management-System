@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import os
+from middleware.middleware import common_middleware, ActiveUserMiddleware
 from services.cron_email import *
 
 load_dotenv()
@@ -18,6 +19,8 @@ category.Base.metadata.create_all(bind=engine)
 cancelled_tickets.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+app.middleware("http")(common_middleware)
+app.add_middleware(ActiveUserMiddleware)
 
 
 @app.on_event("startup")

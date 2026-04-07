@@ -1,6 +1,9 @@
+from services.send_email import send_email
 from functools import wraps
+import inspect
 from fastapi import HTTPException, status
 from models.tickets import Ticket
+from models.users import User
 from schemas.ticket_schema import TicketStatus
 
 
@@ -18,7 +21,10 @@ def require_roles(allowed_roles: list):
                     detail="You don't have required permissions to perform this action",
                 )
 
-            return await func(*args, **kwargs)
+            result = func(*args, **kwargs)
+            if inspect.isawaitable(result):
+                return await result
+            return result
 
         return wrapper
 
@@ -71,6 +77,8 @@ def validate_ticket_status(func):
                 detail="Database session not found in request",
             )
         existing_ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+        if not existing_ticket:
+            raise HTTPException(status_code=404, detail="Ticket not found")
         if (
             existing_ticket.status == TicketStatus.RESOLVED
             or existing_ticket.status == TicketStatus.CANCELLED
@@ -85,5 +93,66 @@ def validate_ticket_status(func):
             )
 
         return await func(*args, **kwargs)
+
+    return wrapper
+
+
+def notify_agents(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        result = await func(*args, **kwargs)
+
+        db = kwargs.get("db")
+        background_tasks = kwargs.get("background_tasks")
+        if not db or not background_tasks:
+            return result
+        agents = db.query(User).filter(User.role == "agent").all()
+        if not agents:
+            return result
+        for agent in agents:
+            background_tasks.add_task(
+                send_email,
+                agent.email,
+                "New Ticket Created",
+                f"New ticket created:\n\nTitle: {result.title}\nPriority: {result.priority}",
+            )
+
+        return result
+
+    return wrapper
+
+
+def notify_customer_on_status_change(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        result = await func(*args, **kwargs)
+
+        db = kwargs.get("db")
+        background_tasks = kwargs.get("background_tasks")
+        ticket_status = kwargs.get("ticket_status")
+        if not db or not background_tasks or not ticket_status:
+            return result
+        customer = db.query(User).filter(User.id == result.created_by).first()
+
+        if customer:
+            if ticket_status.status == TicketStatus.IN_PROGRESS:
+                subject = "Ticket In Progress"
+                body = f"Your ticket '{result.title}' is now in progress."
+
+            elif ticket_status.status == TicketStatus.RESOLVED:
+                subject = "Ticket Resolved"
+                body = f"Your ticket '{result.title}' has been resolved."
+
+            elif ticket_status.status == TicketStatus.CANCELLED:
+                subject = "Ticket Cancelled"
+                body = f"Your ticket '{result.title}' has been cancelled.\nReason: {ticket_status.reason}"
+
+            else:
+                subject = "Ticket Status Updated"
+                body = f"Your ticket '{result.title}' status updated to {ticket_status.status.value}"
+
+            background_tasks.add_task(send_email, customer.email, subject, body)
+
+        return result
 
     return wrapper

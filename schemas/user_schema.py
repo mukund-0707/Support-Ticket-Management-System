@@ -1,6 +1,13 @@
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from enum import Enum
+from fastapi import Form
+
+
+class LoginForm:
+    def __init__(self, email: str = Form(...), password: str = Form(...)):
+        self.email = email
+        self.password = password
 
 
 class Role(Enum):
@@ -22,6 +29,7 @@ class UserResponse(BaseModel):
     email: str
     role: str
     created_at: datetime
+    is_active: bool
 
 
 class UserLogin(BaseModel):

@@ -1,5 +1,6 @@
-from typing import Optional
 from decorators.ticket_decorators import (
+    notify_agents,
+    notify_customer_on_status_change,
     require_roles,
     validate_cancel_reason,
     validate_ticket_status,
@@ -19,7 +20,6 @@ from schemas.ticket_schema import (
 from utils.role import get_current_user
 from models.users import User
 from services.cache import delete_pattern, get_cache, set_cache
-from services.send_email import send_email
 from services.ai_services import generate_description
 from models.category import Category
 
@@ -27,6 +27,7 @@ router = APIRouter(tags=["Tickets"])
 
 
 @router.post("/tickets", response_model=TicketResponse)
+@notify_agents
 async def create_ticket(
     ticket: TicketCreate,
     db: db_dependecies,
@@ -57,18 +58,11 @@ async def create_ticket(
     db.add(new_ticket)
     db.commit()
     db.refresh(new_ticket)
+    await delete_pattern("tickets:priority:*")
     await delete_pattern("tickets:list:*")
     await delete_pattern("tickets:status:*")
+    await delete_pattern("tickets:user:*")
 
-    agents = db.query(User).filter(User.role == "agent").all()
-
-    for agent in agents:
-        background_tasks.add_task(
-            send_email,
-            agent.email,
-            "New Ticket Created",
-            f"New ticket created:\n\nTitle: {new_ticket.title}\nPriority: {new_ticket.priority}",
-        )
     return new_ticket
 
 
@@ -195,6 +189,7 @@ async def get_ticket(
 @require_roles(["agent", "admin"])
 @validate_ticket_status
 @validate_cancel_reason
+@notify_customer_on_status_change
 async def update_ticket_status(
     id: int,
     ticket_status: TicketStatusUpdate,
@@ -226,29 +221,31 @@ async def update_ticket_status(
         db.add(cancelled_ticket)
     db.commit()
     db.refresh(ticket)
+    await delete_pattern(f"tickets:{id}")
+    await delete_pattern("tickets:priority:*")
     await delete_pattern("tickets:list:*")
     await delete_pattern("tickets:status:*")
     await delete_pattern("tickets:user:*")
 
-    customer = db.query(User).filter(User.id == ticket.created_by).first()
-    if customer:
-        if ticket_status.status == TicketStatus.IN_PROGRESS:
-            email_subject = "Ticket In Progress"
-            email_body = f"Your ticket '{ticket.title}' is now in progress."
-            print("Ticket In Progress", ticket_status)
-        elif ticket_status.status == TicketStatus.RESOLVED:
-            email_subject = "Ticket Resolved"
-            email_body = f"Your ticket '{ticket.title}' has been resolved."
-            print("Ticket Resolved", ticket_status)
-        elif ticket_status.status == TicketStatus.CANCELLED:
-            email_subject = "Ticket Cancelled"
-            email_body = f"Your ticket '{ticket.title}' has been cancelled.\nReason: {ticket_status.reason}"
-            print("Ticket Cancelled", ticket_status)
-        else:
-            email_subject = "Ticket Status Updated"
-            email_body = f"Your ticket '{ticket.title}' status has been updated to {ticket_status.status.value}."
-            print("Ticket Status Updated", ticket_status)
-        background_tasks.add_task(send_email, customer.email, email_subject, email_body)
+    # customer = db.query(User).filter(User.id == ticket.created_by).first()
+    # if customer:
+    #     if ticket_status.status == TicketStatus.IN_PROGRESS:
+    #         email_subject = "Ticket In Progress"
+    #         email_body = f"Your ticket '{ticket.title}' is now in progress."
+    #         print("Ticket In Progress", ticket_status)
+    #     elif ticket_status.status == TicketStatus.RESOLVED:
+    #         email_subject = "Ticket Resolved"
+    #         email_body = f"Your ticket '{ticket.title}' has been resolved."
+    #         print("Ticket Resolved", ticket_status)
+    #     elif ticket_status.status == TicketStatus.CANCELLED:
+    #         email_subject = "Ticket Cancelled"
+    #         email_body = f"Your ticket '{ticket.title}' has been cancelled.\nReason: {ticket_status.reason}"
+    #         print("Ticket Cancelled", ticket_status)
+    #     else:
+    #         email_subject = "Ticket Status Updated"
+    #         email_body = f"Your ticket '{ticket.title}' status has been updated to {ticket_status.status.value}."
+    #         print("Ticket Status Updated", ticket_status)
+    #     background_tasks.add_task(send_email, customer.email, email_subject, email_body)
     return ticket
 
 
@@ -285,8 +282,10 @@ async def update_ticket_assign(
     ticket.assigned_to = assign
     db.commit()
     db.refresh(ticket)
+    await delete_pattern(f"tickets:{id}")
     await delete_pattern("tickets:list:*")
     await delete_pattern("tickets:status:*")
+    await delete_pattern("tickets:user:*")
 
     return ticket
 
@@ -321,6 +320,7 @@ async def update_ticket_customer(
         ticket.description = ticket_data.description
     db.commit()
     db.refresh(ticket)
+    await delete_pattern(f"tickets:{ticket_id}")
     await delete_pattern("tickets:list:*")
     await delete_pattern("tickets:user:*")
 

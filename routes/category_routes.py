@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
 from app.database import db_dependecies
 from models.category import Category
 from schemas.category_schema import CategoryCreate, CategoryResponse
@@ -12,7 +11,7 @@ router = APIRouter(tags=["Categories"])
 
 @router.post("/categories", response_model=CategoryResponse)
 @require_roles(["admin"])
-def create_category(
+async def create_category(
     category: CategoryCreate,
     db: db_dependecies,
     current_user: User = Depends(get_current_user),

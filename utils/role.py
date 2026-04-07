@@ -1,14 +1,19 @@
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, Depends
 from app.database import db_dependecies
 from models.users import User
 from utils.security import oauth2_scheme
 from jose import jwt, JWTError
+from fastapi.security import HTTPAuthorizationCredentials
 
 
-def get_current_user(db: db_dependecies, token: str = Depends(oauth2_scheme)):
-    print("token", token)
+def get_current_user(
+    db: db_dependecies,
+    token: HTTPAuthorizationCredentials = Depends(oauth2_scheme),
+):
+    raw_token = token.credentials
+    print("token", raw_token)
     try:
-        payload = jwt.decode(token, "SECRET_KEY", algorithms=["HS256"])
+        payload = jwt.decode(raw_token, "SECRET_KEY", algorithms=["HS256"])
         print("payload: ", payload)
         email = payload.get("sub")
 

@@ -166,7 +166,7 @@
               "mode": "urlencoded",
               "urlencoded": [
                 {
-                  "key": "username",
+                  "key": "email",
                   "value": "alice.c@example.com",
                   "type": "text"
                 },

@@ -28,7 +28,16 @@ Backend API for customer support operations, built with FastAPI, PostgreSQL, and
 | Method | Endpoint | Description | Access |
 |---|---|---|---|
 | POST | `/register` | Register a new user | Public |
-| POST | `/login` | Login and get bearer token | Public |
+| POST | `/login` | Login with `email` + `password` and get bearer token | Public |
+
+Login request format:
+- Content-Type: `application/x-www-form-urlencoded`
+- Fields: `email`, `password`
+
+Swagger usage:
+1. Call `POST /login` with `email` and `password`.
+2. Copy `access_token` from response.
+3. Click `Authorize` in Swagger and paste only the token value.
 
 ### Categories
 
@@ -111,7 +120,7 @@ uvicorn app.main:app --reload
 Run:
 
 ```bash
-pytest
+PYTHONPATH=. pytest
 ```
 
 Tests use:
@@ -127,10 +136,10 @@ Support-Ticket-Management-System/
 │   ├── main.py              # FastAPI app entry point
 │   └── database.py          # PostgreSQL connection & session
 ├── decorators/
-│   └── ticket_decorator.py    # Ticket decorator
+│   └── ticket_decorators.py # Ticket decorators
 ├── models/
 │   ├── cancelled_tickets.py     # Cancelled tickets table
-│   ├── categories.py          # Categories table
+│   ├── category.py            # Categories table
 │   ├── comments.py          # Comment table
 │   ├── tickets.py           # Ticket table
 │   └── users.py             # User table
