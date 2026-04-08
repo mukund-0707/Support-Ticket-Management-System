@@ -3,29 +3,43 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-class TicketStatus(str,Enum):
+
+class TicketStatus(str, Enum):
     OPEN = "open"
     IN_PROGRESS = "in_progress"
     RESOLVED = "resolved"
+    CANCELLED = "cancelled"
 
-class TicketPriority(str,Enum):
+
+class TicketStatusUpdate(BaseModel):
+    status: TicketStatus
+    reason: Optional[str] = None
+
+
+class TicketPriority(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
 
+
 class TicketCreate(BaseModel):
-    title:str
-    description:str
-    priority:TicketPriority
+    title: str
+    description: str
+    priority: TicketPriority
+
 
 class TicketResponse(BaseModel):
-    id:int
-    title:str
-    description:str
-    priority:TicketPriority
-    status:TicketStatus
-    created_at:datetime
-    updated_at:datetime
+    id: int
+    title: str
+    description: str
+    priority: TicketPriority
+    status: TicketStatus
+    category_id: int
+    assigned_to: Optional[int] = None
+    created_by: int
+
+    created_at: datetime
+    updated_at: datetime
 
 
 class TicketUpdate(BaseModel):

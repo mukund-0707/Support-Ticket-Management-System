@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Support Ticket Management System",
-    "description": "API collection for the FastAPI Support Ticket System backend.",
+    "description": "API collection for the FastAPI Support Ticket System backend (updated to current routes).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -13,6 +13,36 @@
     {
       "key": "token",
       "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ticket_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "agent_id",
+      "value": "2",
+      "type": "string"
+    },
+    {
+      "key": "reset_email",
+      "value": "alice.c@example.com",
+      "type": "string"
+    },
+    {
+      "key": "otp",
+      "value": "123456",
+      "type": "string"
+    },
+    {
+      "key": "new_password",
+      "value": "password456",
+      "type": "string"
+    },
+    {
+      "key": "current_password",
+      "value": "password123",
       "type": "string"
     }
   ],
@@ -26,22 +56,6 @@
       }
     ]
   },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [""]
-      }
-    },
-    {
-      "listen": "test",
-      "script": {
-        "type": "text/javascript",
-        "exec": [""]
-      }
-    }
-  ],
   "item": [
     {
       "name": "1. Authentication",
@@ -49,9 +63,16 @@
         {
           "name": "Register Customer",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Alice Customer\",\n  \"email\": \"alice.c@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"customer\"\n}",
@@ -63,17 +84,28 @@
             },
             "url": {
               "raw": "{{base_url}}/register",
-              "host": ["{{base_url}}"],
-              "path": ["register"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "register"
+              ]
             }
           }
         },
         {
           "name": "Register Agent",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Bob Agent\",\n  \"email\": \"bob.a@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"agent\"\n}",
@@ -85,8 +117,45 @@
             },
             "url": {
               "raw": "{{base_url}}/register",
-              "host": ["{{base_url}}"],
-              "path": ["register"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Register Admin",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Carol Admin\",\n  \"email\": \"carol.admin@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"admin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "register"
+              ]
             }
           }
         },
@@ -96,26 +165,28 @@
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
                   "var jsonData = pm.response.json();",
-                  "if(jsonData.access_token) {",
+                  "if (jsonData.access_token) {",
                   "    pm.collectionVariables.set(\"token\", jsonData.access_token);",
-                  "    console.log(\"Token automatically set for future requests.\");",
+                  "    console.log(\"Token set in collection variable: token\");",
                   "}"
-                ],
-                "type": "text/javascript"
+                ]
               }
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [],
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
                 {
-                  "key": "username",
+                  "key": "email",
                   "value": "alice.c@example.com",
                   "type": "text"
                 },
@@ -128,24 +199,164 @@
             },
             "url": {
               "raw": "{{base_url}}/login",
-              "host": ["{{base_url}}"],
-              "path": ["login"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Forget Password (Send OTP)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{reset_email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/forget-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "forget-password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify OTP + Reset Password",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{reset_email}}\",\n  \"otp\": \"{{otp}}\",\n  \"new_password\": \"{{new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/verify-otp-reset-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "verify-otp-reset-password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Change Password (Authenticated)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{current_password}}\",\n  \"new_password\": \"{{new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/change-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "change-password"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "2. Tickets",
+      "name": "2. Categories",
       "item": [
         {
-          "name": "Create Ticket (Customer)",
+          "name": "Create Category (Admin)",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Payment failed\",\n  \"description\": \"I tried to pay but my card was declined.\",\n  \"priority\": \"high\"\n}",
+              "raw": "{\n  \"name\": \"Payment\",\n  \"description\": \"Payment related support issues\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Tickets",
+      "item": [
+        {
+          "name": "Create Ticket (Authenticated)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Payment\",\n  \"description\": \"My card gets declined during checkout.\",\n  \"priority\": \"high\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -154,8 +365,30 @@
             },
             "url": {
               "raw": "{{base_url}}/tickets",
-              "host": ["{{base_url}}"],
-              "path": ["tickets"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tickets"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Ticket by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/tickets/by-id/{{ticket_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tickets",
+                "by-id",
+                "{{ticket_id}}"
+              ]
             }
           }
         },
@@ -166,8 +399,13 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/tickets/my-tickets",
-              "host": ["{{base_url}}"],
-              "path": ["tickets", "my-tickets"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tickets",
+                "my-tickets"
+              ]
             }
           }
         },
@@ -178,8 +416,12 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/tickets?page=1&page_size=10",
-              "host": ["{{base_url}}"],
-              "path": ["tickets"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tickets"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -194,26 +436,19 @@
           }
         },
         {
-          "name": "Get Ticket by ID",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/tickets/by-id/1",
-              "host": ["{{base_url}}"],
-              "path": ["tickets", "by-id", "1"]
-            }
-          }
-        },
-        {
           "name": "Filter Tickets by Status (Agent/Admin)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{base_url}}/tickets/filter?status_code=open",
-              "host": ["{{base_url}}"],
-              "path": ["tickets", "filter"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tickets",
+                "filter"
+              ],
               "query": [
                 {
                   "key": "status_code",
@@ -230,8 +465,13 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/tickets/by-priority?priority=high",
-              "host": ["{{base_url}}"],
-              "path": ["tickets", "by-priority"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tickets",
+                "by-priority"
+              ],
               "query": [
                 {
                   "key": "priority",
@@ -245,16 +485,62 @@
           "name": "Update Ticket Status (Agent/Admin)",
           "request": {
             "method": "PATCH",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/tickets/1/status?ticket_status=in_progress",
-              "host": ["{{base_url}}"],
-              "path": ["tickets", "1", "status"],
-              "query": [
-                {
-                  "key": "ticket_status",
-                  "value": "in_progress"
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/tickets/{{ticket_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tickets",
+                "{{ticket_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel Ticket with Reason (Agent/Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"cancelled\",\n  \"reason\": \"Duplicate request\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/tickets/{{ticket_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tickets",
+                "{{ticket_id}}",
+                "status"
               ]
             }
           }
@@ -265,13 +551,19 @@
             "method": "PATCH",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/tickets/1/assign?assign=2",
-              "host": ["{{base_url}}"],
-              "path": ["tickets", "1", "assign"],
+              "raw": "{{base_url}}/tickets/{{ticket_id}}/assign?assign={{agent_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tickets",
+                "{{ticket_id}}",
+                "assign"
+              ],
               "query": [
                 {
                   "key": "assign",
-                  "value": "2"
+                  "value": "{{agent_id}}"
                 }
               ]
             }
@@ -281,10 +573,15 @@
           "name": "Update Own Ticket (Customer)",
           "request": {
             "method": "PATCH",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"description\": \"I tried again and it still failed.\"\n}",
+              "raw": "{\n  \"description\": \"Issue still persists after retry.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -292,25 +589,36 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/tickets/customer/1",
-              "host": ["{{base_url}}"],
-              "path": ["tickets", "customer", "1"]
+              "raw": "{{base_url}}/tickets/customer/{{ticket_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tickets",
+                "customer",
+                "{{ticket_id}}"
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "3. Comments",
+      "name": "4. Comments",
       "item": [
         {
           "name": "Add Comment",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"ticket_id\": 1,\n  \"message\": \"I am looking into this issue right now.\"\n}",
+              "raw": "{\n  \"ticket_id\": {{ticket_id}},\n  \"message\": \"I am looking into this issue right now.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -319,8 +627,12 @@
             },
             "url": {
               "raw": "{{base_url}}/comments",
-              "host": ["{{base_url}}"],
-              "path": ["comments"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "comments"
+              ]
             }
           }
         },
@@ -330,9 +642,15 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/tickets/1/comments",
-              "host": ["{{base_url}}"],
-              "path": ["tickets", "1", "comments"]
+              "raw": "{{base_url}}/tickets/{{ticket_id}}/comments",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tickets",
+                "{{ticket_id}}",
+                "comments"
+              ]
             }
           }
         }

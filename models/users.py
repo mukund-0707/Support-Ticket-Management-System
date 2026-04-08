@@ -1,14 +1,15 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime
-from sqlalchemy.orm import Mapped,mapped_column
+from sqlalchemy import Integer, String, DateTime
+from sqlalchemy.orm import Mapped, mapped_column
 from app.database import Base
+
 
 class User(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String, index=True)
-    email: Mapped[str] = mapped_column(String, index=True)
+    email: Mapped[str] = mapped_column(String, index=True, unique=True)
     password: Mapped[str] = mapped_column(String)
     role: Mapped[str] = mapped_column(String)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    is_active: Mapped[bool] = mapped_column(default=True)
