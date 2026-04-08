@@ -6,8 +6,7 @@ def send_email(to_email: str, subject: str, body: str):
     print("START EMAIL")
     try:
         sender_email = "mukundpatil0707@gmail.com"
-        password = "aypg gynp apmj wpme"  # normal password nahi
-
+        password = "chxk upzq eoeq mdey"
         msg = MIMEText(body)
         msg["Subject"] = subject
         msg["From"] = sender_email

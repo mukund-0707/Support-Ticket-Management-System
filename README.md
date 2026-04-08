@@ -29,6 +29,9 @@ Backend API for customer support operations, built with FastAPI, PostgreSQL, and
 |---|---|---|---|
 | POST | `/register` | Register a new user | Public |
 | POST | `/login` | Login with `email` + `password` and get bearer token | Public |
+| POST | `/forget-password` | Send OTP to registered email | Public |
+| POST | `/verify-otp-reset-password` | Verify OTP and set new password | Public |
+| POST | `/change-password` | Change password using current password | Authenticated |
 
 Login request format:
 - Content-Type: `application/x-www-form-urlencoded`
@@ -38,6 +41,15 @@ Swagger usage:
 1. Call `POST /login` with `email` and `password`.
 2. Copy `access_token` from response.
 3. Click `Authorize` in Swagger and paste only the token value.
+
+Password reset flow:
+1. Call `POST /forget-password` with email.
+2. Read OTP from email.
+3. Call `POST /verify-otp-reset-password` with `email`, `otp`, `new_password`.
+
+Change password flow:
+- Call `POST /change-password` with bearer token and JSON body:
+`{"current_password":"...","new_password":"..."}`
 
 ### Categories
 
@@ -155,6 +167,7 @@ Support-Ticket-Management-System/
 │   └── comment_routes.py    # Comment APIs
 ├── services/
 │   ├── ai_services.py       # AI services
+│   ├── auth_service.py      # Forgot/reset/change password logic
 │   ├── cron_email.py        # Cron email sender
 │   ├── cache.py             # Redis get/set/delete helpers
 │   └── send_email.py        # SMTP email sender

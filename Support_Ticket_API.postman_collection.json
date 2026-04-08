@@ -24,6 +24,26 @@
       "key": "agent_id",
       "value": "2",
       "type": "string"
+    },
+    {
+      "key": "reset_email",
+      "value": "alice.c@example.com",
+      "type": "string"
+    },
+    {
+      "key": "otp",
+      "value": "123456",
+      "type": "string"
+    },
+    {
+      "key": "new_password",
+      "value": "password456",
+      "type": "string"
+    },
+    {
+      "key": "current_password",
+      "value": "password123",
+      "type": "string"
     }
   ],
   "auth": {
@@ -184,6 +204,102 @@
               ],
               "path": [
                 "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Forget Password (Send OTP)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{reset_email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/forget-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "forget-password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Verify OTP + Reset Password",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{reset_email}}\",\n  \"otp\": \"{{otp}}\",\n  \"new_password\": \"{{new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/verify-otp-reset-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "verify-otp-reset-password"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Change Password (Authenticated)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{current_password}}\",\n  \"new_password\": \"{{new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/change-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "change-password"
               ]
             }
           }
