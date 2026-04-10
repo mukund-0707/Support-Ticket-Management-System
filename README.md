@@ -29,7 +29,7 @@ Backend API for customer support operations, built with FastAPI, PostgreSQL, and
 |---|---|---|---|
 | POST | `/register` | Register a new user | Public |
 | POST | `/login` | Login with `email` + `password` and get bearer token | Public |
-| POST | `/forget-password` | Send OTP to registered email | Public |
+| POST | `/forgot-password` | Send OTP to registered email | Public |
 | POST | `/verify-otp-reset-password` | Verify OTP and set new password | Public |
 | POST | `/change-password` | Change password using current password | Authenticated |
 
@@ -43,7 +43,7 @@ Swagger usage:
 3. Click `Authorize` in Swagger and paste only the token value.
 
 Password reset flow:
-1. Call `POST /forget-password` with email.
+1. Call `POST /forgot-password` with email.
 2. Read OTP from email.
 3. Call `POST /verify-otp-reset-password` with `email`, `otp`, `new_password`.
 
@@ -77,6 +77,26 @@ Change password flow:
 |---|---|---|---|
 | POST | `/comments` | Create comment | Authenticated |
 | GET | `/tickets/{ticket_id}/comments` | List ticket comments | Authenticated |
+
+### Notifications
+
+| Method | Endpoint | Description | Access |
+|---|---|---|---|
+| GET | `/notifications` | List current user's notifications | Authenticated |
+| PATCH | `/notifications/{notification_id}/read` | Mark one notification as read | Authenticated |
+| PATCH | `/notifications/read-all` | Mark all notifications as read | Authenticated |
+| GET | `/notifications/unread-count` | Get unread notification count | Authenticated |
+
+Realtime notification WebSocket:
+- Endpoint: `/ws/notifications?token=<access_token>`
+- Client flow:
+1. Login and get `access_token`.
+2. Connect WebSocket with token in query.
+3. Receive JSON notification payloads in realtime.
+
+Market stream endpoints (existing):
+- WebSocket: `/ws`
+- SSE: `/price-stream`
 
 Notes:
 - Customers can comment only on their own tickets.
@@ -153,21 +173,26 @@ Support-Ticket-Management-System/
 │   ├── cancelled_tickets.py     # Cancelled tickets table
 │   ├── category.py            # Categories table
 │   ├── comments.py          # Comment table
+│   ├── notification.py      # User notifications table
 │   ├── tickets.py           # Ticket table
 │   └── users.py             # User table
 ├── schemas/
 │   ├── category_schema.py             # Category Pydantic schemas
 │   ├── comment_schema.py              # Comment Pydantic schemas
+│   ├── notification_schema.py         # Notification Pydantic schemas
 │   ├── ticket_schema.py               # Ticket Pydantic schemas
 │   └── user_schema.py                 # User Pydantic schemas
 ├── routes/
 │   ├── auth_routes.py       # Register & Login APIs
 │   ├── category_routes.py   # Category APIs
+│   ├── comment_routes.py    # Comment APIs
+│   ├── notification_routes.py # Notification APIs
 │   ├── ticket_routes.py     # Ticket APIs
-│   └── comment_routes.py    # Comment APIs
+│   └── ws_handler_routes.py # WebSocket/SSE routes
 ├── services/
 │   ├── ai_services.py       # AI services
 │   ├── auth_service.py      # Forgot/reset/change password logic
+│   ├── notification_service.py # Notification persist + realtime push
 │   ├── cron_email.py        # Cron email sender
 │   ├── cache.py             # Redis get/set/delete helpers
 │   └── send_email.py        # SMTP email sender
@@ -180,6 +205,7 @@ Support-Ticket-Management-System/
 ├── utils/
 │   ├── security.py          # JWT + bcrypt utilities
 │   ├── role.py              # Auth guard (get_current_user)
-│   └── redis_connection.py  # Redis client setup
+│   ├── redis_connection.py  # Redis client setup
+│   └── ws_manager.py        # WebSocket connection manager
 ├── requirements.txt
 └── README.md

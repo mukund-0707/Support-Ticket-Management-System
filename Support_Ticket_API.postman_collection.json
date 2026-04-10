@@ -44,6 +44,16 @@
       "key": "current_password",
       "value": "password123",
       "type": "string"
+    },
+    {
+      "key": "notification_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "ws_notification_url",
+      "value": "ws://localhost:8000/ws/notifications?token={{token}}",
+      "type": "string"
     }
   ],
   "auth": {
@@ -231,12 +241,12 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/forget-password",
+              "raw": "{{base_url}}/forgot-password",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "forget-password"
+                "forgot-password"
               ]
             }
           }
@@ -652,6 +662,105 @@
                 "comments"
               ]
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Notifications",
+      "item": [
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/notifications?unread_only=false&limit=20&offset=0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "unread_only",
+                  "value": "false"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unread Notification Count",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/notifications/unread-count",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "notifications",
+                "unread-count"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/notifications/{{notification_id}}/read",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notification_id}}",
+                "read"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{base_url}}/notifications/read-all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "notifications",
+                "read-all"
+              ]
+            }
+          }
+        },
+        {
+          "name": "WebSocket Notifications URL (Use Postman WS tab)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{ws_notification_url}}",
+              "host": [
+                "{{ws_notification_url}}"
+              ]
+            },
+            "description": "Open a WebSocket request in Postman and connect to ws://localhost:8000/ws/notifications?token={{token}}"
           }
         }
       ]

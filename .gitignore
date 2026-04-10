@@ -6,6 +6,7 @@ venv/
 __pycache__/
 *.py[cod]
 *.pyo
+.pytest_cache/
 
 # Environment variables
 .env
@@ -27,3 +28,4 @@ dist/
 build/
 
 .coverage
+.codex

@@ -5,6 +5,7 @@ from models.comments import Comment
 from models.users import User
 from schemas.comment_schema import CommentCreate, CommentResponse
 from utils.role import get_current_user
+from services.notification_service import notify_user
 
 router = APIRouter(tags=["Comments"])
 
@@ -49,6 +50,31 @@ def create_comment(
     db.add(new_comment)
     db.commit()
     db.refresh(new_comment)
+
+# Notify ticket owner, assigned agent and admins about new comment
+    ticket = db.query(Ticket).filter(Ticket.id == comment.ticket_id).first()
+    if ticket:
+        ticket_owner = db.query(User).filter(User.id == ticket.created_by).first()
+        if ticket_owner:
+            notify_user(
+                user_id=ticket_owner.id,
+                message=f"New comment on your ticket: {ticket.title}\nComment: {new_comment.message}",
+                db=db,
+            )
+        assigned_agent = db.query(User).filter(User.id == ticket.assigned_to).first()
+        if assigned_agent:
+            notify_user(
+                user_id=assigned_agent.id,
+                message=f"New comment on assigned ticket: {ticket.title}\nComment: {new_comment.message}",
+                db=db,
+            )
+        admin_users = db.query(User).filter(User.role == "admin").first()
+        if admin_users:
+            notify_user(
+                user_id=admin_users.id,
+                message=f"New comment on ticket: {ticket.title}\nComment: {new_comment.message}",
+                db=db,
+            )
     return new_comment
 
 

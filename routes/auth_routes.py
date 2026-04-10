@@ -13,6 +13,7 @@ from schemas.user_schema import (
     UserResponse,
     VerifyOtpResetRequest,
 )
+from services.notification_service import notify_user
 
 router = APIRouter(tags=["Auth"])
 
@@ -32,6 +33,14 @@ def register(user: UserCreate, db: db_dependecies):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    if new_user.role == "customer":
+        notify_user(new_user.id, "Welcome to the Ticketing System!", db)
+    elif new_user.role == "agent":
+        notify_user(new_user.id, "Welcome to the Ticketing System! You are now an agent.", db)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user role"
+        )
     return new_user
 
 
@@ -55,27 +64,59 @@ def login(form_data: LoginForm = Depends(), db: Session = Depends(db_conn)):
 
 
 @router.post("/forgot-password")
-async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(db_conn)):
+async def forgot_password(
+    request: ForgotPasswordRequest, db: Session = Depends(db_conn)
+):
     await send_password_reset_otp(request.email, db)
+    user = db.query(User).filter(User.email == request.email).first()
+    if request.email:
+        notify_user(
+            user_id=user.id if user else 0,
+            message="OTP sent to your email for password reset",
+            db=db,
+        )
     return {"message": "OTP sent to email"}
 
 
 @router.post("/verify-otp-reset-password")
-async def reset_password(request: VerifyOtpResetRequest, db: Session = Depends(db_conn)):
+async def reset_password(
+    request: VerifyOtpResetRequest, db: Session = Depends(db_conn)
+):
     await verify_otp_and_reset_password(request, db)
+    if request.email:
+        user = db.query(User).filter(User.email == request.email).first()
+        notify_user(
+            user_id=user.id if user else 0,
+            message="Your password has been reset successfully",
+            db=db,
+        )
     return {"message": "Password reset successful"}
 
 
 @router.post("/change-password")
-def change_password(request: ChangePasswordRequest, current_user: User = Depends(get_current_user), db: Session = Depends(db_conn)):
+def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(db_conn),
+):
     if not verify_password(request.current_password, current_user.password):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
         )
     if verify_password(request.new_password, current_user.password):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="New password cannot be the same as the current password"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password cannot be the same as the current password",
         )
     current_user.password = get_password_hash(request.new_password[:72])
     db.commit()
+    
+    if current_user:
+        notify_user(
+            user_id=current_user.id,
+            message="Your password has been changed successfully",
+            db=db,
+        )
+        
     return {"message": "Password changed successfully"}

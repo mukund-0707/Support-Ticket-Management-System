@@ -18,6 +18,7 @@ from schemas.ticket_schema import (
     TicketStatusUpdate,
 )
 from utils.role import get_current_user
+from services.notification_service import notify_user
 from models.users import User
 from services.cache import delete_pattern, get_cache, set_cache
 from services.ai_services import generate_description
@@ -58,6 +59,24 @@ async def create_ticket(
     db.add(new_ticket)
     db.commit()
     db.refresh(new_ticket)
+
+    # Notify agents and admin about new ticket
+    if db.refresh(new_ticket):
+        agents = db.query(User).filter(User.role == "agent").all()
+        for agent in agents:
+            notify_user(
+                user_id=agent.id,
+                message=f"New ticket created: {new_ticket.title}",
+                db=db,
+            )
+        admin = db.query(User).filter(User.role == "admin").first()
+        if admin:
+            notify_user(
+                user_id=admin.id,
+                message=f"New ticket created: {new_ticket.title}",
+                db=db,
+            )
+
     await delete_pattern("tickets:priority:*")
     await delete_pattern("tickets:list:*")
     await delete_pattern("tickets:status:*")
@@ -221,6 +240,14 @@ async def update_ticket_status(
         db.add(cancelled_ticket)
     db.commit()
     db.refresh(ticket)
+    if ticket:
+        customer = db.query(User).filter(User.id == ticket.created_by).first()
+        if customer:
+             notify_user(
+                user_id=customer.id,
+                message=f"Ticket status updated: {ticket.title}\nNew status: {ticket.status}",
+                db=db,
+            )
     await delete_pattern(f"tickets:{id}")
     await delete_pattern("tickets:priority:*")
     await delete_pattern("tickets:list:*")
@@ -282,6 +309,14 @@ async def update_ticket_assign(
     ticket.assigned_to = assign
     db.commit()
     db.refresh(ticket)
+    if ticket:
+        assigned_agent = db.query(User).filter(User.id == assign).first()
+        if assigned_agent:
+            notify_user(
+                user_id=assigned_agent.id,
+                message=f"You have been assigned a new ticket: {ticket.title}",
+                db=db,
+            )
     await delete_pattern(f"tickets:{id}")
     await delete_pattern("tickets:list:*")
     await delete_pattern("tickets:status:*")
@@ -320,6 +355,14 @@ async def update_ticket_customer(
         ticket.description = ticket_data.description
     db.commit()
     db.refresh(ticket)
+    if ticket:
+        customer = db.query(User).filter(User.id == ticket.created_by).first()
+        if customer:
+             notify_user(
+                user_id=customer.id,
+                message=f"Your ticket has been updated: {ticket.title}",
+                db=db,
+            )
     await delete_pattern(f"tickets:{ticket_id}")
     await delete_pattern("tickets:list:*")
     await delete_pattern("tickets:user:*")

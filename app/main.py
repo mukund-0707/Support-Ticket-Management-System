@@ -1,3 +1,5 @@
+import json
+
 from dotenv import load_dotenv
 import os
 from middleware.middleware import common_middleware, ActiveUserMiddleware
@@ -8,8 +10,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from routes import auth_routes, ticket_routes, comment_routes, category_routes
-from models import users, tickets, comments, category, cancelled_tickets
+from routes import (
+    auth_routes,
+    ticket_routes,
+    comment_routes,
+    category_routes,
+    notification_routes,
+    ws_handler_routes,
+)
+from models import users, tickets, comments, category, cancelled_tickets, notification
 from app.database import engine
 
 users.Base.metadata.create_all(bind=engine)
@@ -17,6 +26,7 @@ tickets.Base.metadata.create_all(bind=engine)
 comments.Base.metadata.create_all(bind=engine)
 category.Base.metadata.create_all(bind=engine)
 cancelled_tickets.Base.metadata.create_all(bind=engine)
+notification.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 app.middleware("http")(common_middleware)
@@ -32,3 +42,5 @@ app.include_router(auth_routes.router)
 app.include_router(ticket_routes.router)
 app.include_router(comment_routes.router)
 app.include_router(category_routes.router)
+app.include_router(notification_routes.router)
+app.include_router(ws_handler_routes.router)
